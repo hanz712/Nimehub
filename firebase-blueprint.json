@@ -1,0 +1,164 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with synchronized watchlist, rank, level, and XP",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bannerUrl": { "type": "string" },
+        "bio": { "type": "string" },
+        "gamification": {
+          "type": "object",
+          "properties": {
+            "level": { "type": "number" },
+            "exp": { "type": "number" },
+            "maxExp": { "type": "number" },
+            "totalExp": { "type": "number" },
+            "rankTitle": { "type": "string" },
+            "rankBadgeColor": { "type": "string" },
+            "dailyStreak": { "type": "number" },
+            "lastCheckIn": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLogin": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "WatchlistItem": {
+      "title": "WatchlistItem",
+      "description": "An anime tracked in user watching, planning, or completed list with episode progress",
+      "type": "object",
+      "properties": {
+        "animeId": { "type": "string" },
+        "title": { "type": "string" },
+        "poster": { "type": "string" },
+        "addedAt": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["watching", "plan", "completed"]
+        },
+        "currentEpisode": { "type": "number" },
+        "totalEpisodes": { "type": "number" },
+        "notes": { "type": "string" },
+        "userRating": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["animeId", "title"]
+    },
+    "HistoryItem": {
+      "title": "HistoryItem",
+      "description": "Watch history record for an episode",
+      "type": "object",
+      "properties": {
+        "episodeId": { "type": "string" },
+        "animeId": { "type": "string" },
+        "animeTitle": { "type": "string" },
+        "episodeTitle": { "type": "string" },
+        "poster": { "type": "string" },
+        "watchedAt": { "type": "number" }
+      },
+      "required": ["episodeId", "animeId", "episodeTitle"]
+    },
+    "Clan": {
+      "title": "Clan",
+      "description": "Anime guild or clan with member count, total XP, leader and tag",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "tag": { "type": "string" },
+        "description": { "type": "string" },
+        "leaderId": { "type": "string" },
+        "leaderName": { "type": "string" },
+        "leaderAvatar": { "type": "string" },
+        "badgeColor": { "type": "string" },
+        "memberCount": { "type": "number" },
+        "totalXp": { "type": "number" },
+        "isOpen": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "name", "tag", "leaderId"]
+    },
+    "ClanMember": {
+      "title": "ClanMember",
+      "description": "Membership record of a user in a clan",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "clanId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["leader", "elder", "member"]
+        },
+        "level": { "type": "number" },
+        "rankTitle": { "type": "string" },
+        "joinedAt": { "type": "number" }
+      },
+      "required": ["userId", "clanId", "role"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "User discussion comment on a specific anime episode",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "animeId": { "type": "string" },
+        "animeTitle": { "type": "string" },
+        "episodeTitle": { "type": "string" },
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "userLevel": { "type": "number" },
+        "userRankTitle": { "type": "string" },
+        "userClan": { "type": "string" },
+        "content": { "type": "string" },
+        "isSpoiler": { "type": "boolean" },
+        "likesCount": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "episodeId", "userId", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User document containing account info, rank, level, clan, and XP"
+    },
+    "/users/{userId}/watchlist/{animeId}": {
+      "schema": { "$ref": "WatchlistItem" },
+      "description": "User watching/planning/completed anime items with episode tracking"
+    },
+    "/users/{userId}/history/{episodeId}": {
+      "schema": { "$ref": "HistoryItem" },
+      "description": "User watch history items"
+    },
+    "/clans/{clanId}": {
+      "schema": { "$ref": "Clan" },
+      "description": "Anime clans storing metadata, leaders, and member count"
+    },
+    "/clans/{clanId}/members/{userId}": {
+      "schema": { "$ref": "ClanMember" },
+      "description": "Clan members list and roles"
+    },
+    "/episodes/{episodeId}/comments/{commentId}": {
+      "schema": { "$ref": "Comment" },
+      "description": "Episode comments with user profile and likes"
+    },
+    "/comments/{commentId}": {
+      "schema": { "$ref": "Comment" },
+      "description": "Global index of anime episode comments"
+    }
+  }
+}

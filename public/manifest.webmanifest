@@ -1,0 +1,19 @@
+{
+  "name": "NimeHub \u2014 Anime Subtitle Indonesia",
+  "short_name": "NimeHub",
+  "description": "Katalog, jadwal, dan streaming anime subtitle Indonesia.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf8",
+  "theme_color": "#d94f3b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

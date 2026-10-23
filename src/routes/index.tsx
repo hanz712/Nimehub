@@ -1,0 +1,328 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { HeroSlider } from "@/components/anime/HeroSlider";
+import { TrendingSlider } from "@/components/anime/TrendingSlider";
+import { Shelf } from "@/components/anime/Shelf";
+import { ErrorState } from "@/components/anime/StateViews";
+import { AnimeGachaModal } from "@/components/anime/AnimeGachaModal";
+import { WelcomeModal } from "@/components/anime/WelcomeModal";
+import { FloatingTools } from "@/components/anime/FloatingTools";
+import { SearchFilterPanel } from "@/components/anime/SearchFilterPanel";
+import { RecentlyWatchedSection } from "@/components/anime/RecentlyWatchedSection";
+import { GenreFilterBar, ALL_GENRE_OPTIONS } from "@/components/anime/GenreFilterBar";
+import { homeQuery, currentDayName, genreAnimeQuery } from "@/lib/queries";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Bookmark,
+  CalendarCheck,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Dices,
+  Film,
+  Flame,
+  History,
+  Layers,
+  Play,
+  Zap,
+} from "lucide-react";
+
+function HomeErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-16 text-center space-y-4">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/15 text-destructive border border-destructive/20 shadow-xs">
+        <AlertTriangle className="h-7 w-7" />
+      </div>
+      <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">
+        Katalog Sedang Mengalami Kendala Jaringan
+      </h2>
+      <p className="mx-auto max-w-md text-xs sm:text-sm text-muted-foreground leading-relaxed">
+        {error?.message ||
+          "Koneksi ke penyedia data sedang sibuk. Silakan coba muat ulang halaman."}
+      </p>
+      <div className="flex items-center justify-center gap-3 pt-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") window.location.reload();
+            else reset();
+          }}
+          className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-5 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition cursor-pointer"
+        >
+          Muat Ulang Halaman
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export const Route = createFileRoute("/")({
+  loader: async ({ context }) => {
+    try {
+      await context.queryClient.ensureQueryData(homeQuery());
+    } catch {
+      // In case of transient network error during SSR prefetch, let client query handle fallback
+    }
+  },
+  errorComponent: HomeErrorComponent,
+  head: () => ({
+    meta: [
+      { title: "NimeHub: Streaming Anime Subtitle Indonesia Terbaru" },
+      {
+        name: "description",
+        content:
+          "Nonton anime subtitle Indonesia terlengkap dan terupdate gratis. Streaming lancar dengan pilihan kualitas 360p, 480p, hingga 720p HD.",
+      },
+      { property: "og:title", content: "NimeHub: Streaming Anime Subtitle Indonesia Terbaru" },
+      {
+        property: "og:description",
+        content:
+          "Nonton anime subtitle Indonesia terlengkap dan terupdate gratis. Streaming lancar dengan berbagai pilihan server.",
+      },
+    ],
+  }),
+  component: HomePage,
+});
+
+// Clean text-only popular genres (strictly no font-awesome icons)
+const POPULAR_GENRES = [
+  { id: "action", name: "Action" },
+  { id: "isekai", name: "Isekai" },
+  { id: "fantasy", name: "Fantasy" },
+  { id: "romance", name: "Romance" },
+  { id: "comedy", name: "Comedy" },
+  { id: "shounen", name: "Shounen" },
+  { id: "adventure", name: "Adventure" },
+  { id: "slice-of-life", name: "Slice of Life" },
+  { id: "supernatural", name: "Supernatural" },
+  { id: "sci-fi", name: "Sci-Fi" },
+  { id: "mystery", name: "Mystery" },
+  { id: "drama", name: "Drama" },
+  { id: "school", name: "School" },
+  { id: "sports", name: "Sports" },
+];
+
+function HomePage() {
+  const { data, isPending, error, refetch } = useQuery(homeQuery());
+  const [gachaOpen, setGachaOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null);
+  const todayDay = currentDayName();
+
+  const activeGenreOption = ALL_GENRE_OPTIONS.find((g) => g.id === selectedGenreId);
+
+  const { data: genreAnimeData, isPending: isGenrePending } = useQuery({
+    ...genreAnimeQuery(selectedGenreId || "", 1),
+    enabled: Boolean(selectedGenreId),
+  });
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 sm:space-y-12 px-4 py-4 sm:py-6">
+      {/* Welcome & Site Introduction Popup Modal */}
+      <WelcomeModal />
+
+      {/* Stream Curation & Broadcast Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 dark:border-white/10 bg-card/90 dark:bg-surface/80 px-4 py-2.5 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="noir-kicker text-muted-foreground">BROADCAST</span>
+          <span className="text-muted-foreground/30">·</span>
+          <span className="text-xs font-medium text-foreground">
+            Tayang Hari Ini ({todayDay}) : Episode Sub Indo Diperbarui Otomatis
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className="noir-button-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium cursor-pointer"
+          >
+            <span>Filter Anime</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("open-welcome-modal"))}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <span>Panduan & Info</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Hero Section Loading / Carousel */}
+      {isPending ? (
+        <div className="aspect-[16/9] w-full animate-pulse rounded-2xl bg-muted sm:aspect-[21/9] border border-border/80 dark:border-white/10" />
+      ) : null}
+
+      {error ? <ErrorState error={error} onRetry={() => refetch()} /> : null}
+
+      {data && data.slider.length > 0 ? <HeroSlider items={data.slider.slice(0, 7)} /> : null}
+
+      {/* High-Quality Trending Anime Horizontal Slider */}
+      {data && (data.hot.length > 0 || data.slider.length > 0) ? (
+        <TrendingSlider
+          items={data.hot.length > 0 ? data.hot.slice(0, 10) : data.slider.slice(0, 10)}
+        />
+      ) : null}
+
+      {/* Interactive Surprise Anime Roulette Banner */}
+      <section className="relative overflow-hidden rounded-2xl border border-border/80 dark:border-white/10 noir-frame p-5 sm:p-6 shadow-md">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+              <Dices className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="noir-kicker mb-1">ROULETTE REKOMENDASI</div>
+              <h3 className="font-display text-sm sm:text-base font-bold text-foreground">
+                Bingung Mau Nonton Apa Hari Ini?
+              </h3>
+              <p className="text-xs text-muted-foreground leading-snug">
+                Putar roda takdir anime dan temukan serial menarik berikutnya secara instan.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setGachaOpen(true)}
+            className="noir-button inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-xs font-bold text-primary-foreground shadow-md transition-all cursor-pointer w-full sm:w-auto"
+          >
+            <Dices className="h-4 w-4" />
+            <span>Putar Anime Acak</span>
+          </button>
+        </div>
+      </section>
+
+      {/* Recently Watched / Continue Watching Section */}
+      <RecentlyWatchedSection />
+
+      {/* Genre Filter Bar: Dropdown, Pills & Sidebar Trigger */}
+      <GenreFilterBar
+        activeGenreId={selectedGenreId}
+        onSelectGenre={setSelectedGenreId}
+        onOpenSidebar={() => setFilterOpen(true)}
+      />
+
+      {/* Dynamic Shelf When User Filters by Specific Genre */}
+      {selectedGenreId ? (
+        <Shelf
+          title={`Hasil Filter: Genre ${activeGenreOption?.name || selectedGenreId}`}
+          icon={Layers}
+          items={genreAnimeData?.items ?? []}
+          isLoading={isGenrePending}
+          viewAllTo="/genre/$genreId"
+          viewAllParams={{ genreId: selectedGenreId }}
+          viewAllSearch={{ page: 1, name: activeGenreOption?.name }}
+        />
+      ) : null}
+
+      {/* Ongoing / Tayang Section */}
+      <Shelf
+        title={`Tayang Hari ${todayDay}`}
+        icon={CalendarDays}
+        items={data?.today ?? []}
+        isLoading={isPending}
+        viewAllTo="/jadwal"
+      />
+
+      <Shelf
+        title="Episode Terbaru (Baru Rilis)"
+        icon={Clock}
+        items={data?.new ?? []}
+        isLoading={isPending}
+        viewAllTo="/ongoing"
+        viewAllSearch={{ page: 1 }}
+      />
+
+      <Shelf
+        title="Sedang Tayang (Ongoing Terpopuler)"
+        icon={Flame}
+        items={data?.hot ?? []}
+        isLoading={isPending}
+        viewAllTo="/ongoing"
+        viewAllSearch={{ page: 1 }}
+      />
+
+      <Shelf
+        title="Anime Tamat Terbaru (Completed)"
+        icon={CheckCircle2}
+        items={data?.popular ?? []}
+        isLoading={isPending}
+        viewAllTo="/tamat"
+        viewAllSearch={{ page: 1 }}
+      />
+
+      {/* Platform Features Highlight */}
+      <section className="rounded-2xl sm:rounded-3xl border border-border/80 bg-card/60 p-6 sm:p-8 backdrop-blur-xs">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Zap className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display text-xs sm:text-sm font-bold text-foreground">
+                Streaming Cepat
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Pemutar video responsif dengan multi-server OtakuWatch, OdStream, VidHide, & Mega.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Film className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display text-xs sm:text-sm font-bold text-foreground">
+                Kualitas Fleksibel
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Pilih resolusi 360p hemat kuota, 480p seimbang, hingga 720p HD jernih.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CalendarCheck className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display text-xs sm:text-sm font-bold text-foreground">
+                Jadwal Rilis Tepat
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Katalog anime rilis mingguan selalu disinkronkan setiap hari Senin s/d Minggu.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Bookmark className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display text-xs sm:text-sm font-bold text-foreground">
+                Simpan & Riwayat
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tandai anime favorit dan lacak episode terakhir yang ditonton secara otomatis.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Floating Quick Tools (Scroll to Top, Gacha, Filter) */}
+      <FloatingTools onOpenFilter={() => setFilterOpen(true)} />
+
+      {/* Anime Gacha Roulette Modal */}
+      <AnimeGachaModal open={gachaOpen} onOpenChange={setGachaOpen} />
+
+      {/* Filter Drawer Panel */}
+      <SearchFilterPanel open={filterOpen} onOpenChange={setFilterOpen} />
+    </div>
+  );
+}
